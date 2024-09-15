@@ -16,7 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from rest_framework import routers
-from entities.views import SubscriptionView
+from entities.views import SubscriptionView, PlanView
 
 
 urlpatterns = [
@@ -26,5 +26,6 @@ urlpatterns = [
 router = routers.DefaultRouter()
 
 router.register(r'api/subscriptions', SubscriptionView)
+router.register(r'api/plans', PlanView)
 
 urlpatterns += router.urls

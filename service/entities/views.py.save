@@ -1,0 +1,15 @@
+from django.shortcuts import render
+from rest_framework.viewsets import ReadOnlyModelViewSet
+from entities.models import Subscription
+from clients.models import Client
+from entities.serializers import SerializerSubscription
+
+
+class SubscriptionView(ReadOnlyModelViewSet):
+    queryset = Subscription.objects.all().prefetch_related(
+        Prefetch('client','plan',queryset=Client.objects.only('company_name',
+							      'user__email'
+Prefetch('client','plan',queryset=Client.objects.only('company_name',
+							      'user__email'),
+        
+    serializer_class = SerializerSubscription
