@@ -1,11 +1,28 @@
 from django.core.validators import MaxValueValidator
 from django.db import models
 from clients.models import Client
-from entities.tasks import  set_price
+from entities.tasks import set_price
+from entities.receiver import by_deleting_subscription
+from django.db.models.signals import post_delete
 
 class Service(models.Model):
     name = models.CharField(max_length=50)
     full_price = models.PositiveIntegerField()
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__full_price = self.full_price
+    
+
+    def save(self, *args, **kwargs):
+
+        if self.full_price != self.__full_price:
+            for price in self.subscriptions.all():
+                set_price.delay(price.id)
+
+        return super().save(*args, **kwargs)
+
 
 
 class Plan(models.Model):
@@ -17,6 +34,19 @@ class Plan(models.Model):
                                                    validators=[
                                                        MaxValueValidator(100)
                                                    ])
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__discount_percent = self.discount_percent
+    
+
+    def save(self, *args, **kwargs):
+
+        if self.discount_percent != self.__discount_percent:
+            for subs in self.subscriptions.all():
+                set_price.delay(subs.id)
+
+        return super().save(*args, **kwargs)
 
 
 class Subscription(models.Model):
@@ -30,10 +60,17 @@ class Subscription(models.Model):
                              related_name="subscriptions",
                              on_delete=models.PROTECT)
     price = models.PositiveIntegerField(default=0, )
-
-    def save(self, *args, save_model=True, **kwargs):
-        if save_model:
+ 
+    
+    def save(self, *args, **kwargs):
+        creating = not bool(self.id)
+        result = super().save(*args, **kwargs)
+        
+        if creating:       
             set_price.delay(self.id)
 
 
-        return super().save(*args, **kwargs)
+        return result
+
+
+post_delete.connect(by_deleting_subscription,sender=Subscription)
