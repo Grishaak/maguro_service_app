@@ -13,7 +13,7 @@ services:
       - DB_PASS=password
 
     command: >
-      sh -c " 
+      sh -c "
         python manage.py runserver 0.0.0.0:8000
       "
     depends_on:
@@ -34,12 +34,33 @@ services:
     build:
       context: .
     hostname: worker
-    entrypoint:
-      - celery
-    command: -A celery_app.app app worker --loglevel=info
+    entrypoint: celery
+    command: -A celery_app.app worker --loglevel=info
     volumes:
       - ./service:/service
     links:
       - redis
     depends_on:
       - redis
+      - database
+
+    environment:
+      - DB_HOST=database
+      - DB_NAME=dbname
+      - DB_USER=dbuser
+      - DB_PASS=password
+
+  flower:
+    build:
+      context: .
+    hostname: flower
+    entrypoint: celery
+    command: -A celery_app.app flower
+    volumes:
+      - ./service:/service
+    links:
+      - redis
+    depends_on:
+      - redis
+    ports:
+      - "5555:5555"
